@@ -41,6 +41,12 @@ def insert(body: InsertBody):
 def query(query: str, k: int = 5, entities: str = None):
     vector = embeddings_model.embed_one(query)
     results = vector_database.query(vector, k, entities=entities)
+    if len(results) == 0:
+        return {
+            'success': True,
+            'results': [],
+        }
+
     reranked_results = reranking_model.rerank(query, results)
     return {
         'success': True,
