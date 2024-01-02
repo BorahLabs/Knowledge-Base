@@ -2,7 +2,7 @@ from pydantic import BaseModel, ConfigDict
 from typing import List
 
 class InsertItem(BaseModel):
-    id: int
+    id: any
     entity: str
     text: str
     payload: dict = None

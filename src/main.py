@@ -25,7 +25,7 @@ def insert(body: InsertBody):
 
 @app.delete('/delete/{id}')
 def delete(id):
-    vector_database.delete(id)
+    vector_database.delete([id])
     return {
         'success': True,
     }
