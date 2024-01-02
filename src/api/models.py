@@ -1,8 +1,8 @@
 from pydantic import BaseModel, ConfigDict
-from typing import List
+from typing import List, Union
 
 class InsertItem(BaseModel):
-    id: any
+    id: Union[str, int]
     entity: str
     text: str
     payload: dict = None
