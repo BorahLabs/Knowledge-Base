@@ -1,30 +1,16 @@
 import dotenv
-import os
-from fastapi import FastAPI
-from pydantic import BaseModel, ConfigDict
-from typing import List
+import env
 
-from embeddings.HuggingfaceModel import HuggingfaceModel
-from reranking.HuggingfaceRerankingModel import HuggingfaceRerankingModel
-from vector_database.QdrantVectorDatabase import QdrantVectorDatabase
+from fastapi import FastAPI
+from api.models import InsertBody
 from vector_database.dto.InsertData import InsertData
+
 
 dotenv.load_dotenv()
 
-class InsertItem(BaseModel):
-    id: int
-    entity: str
-    text: str
-    payload: dict = None
-
-class InsertBody(BaseModel):
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-
-    data: List[InsertItem]
-
-vector_database = QdrantVectorDatabase()
-embeddings_model = HuggingfaceModel(os.getenv('EMBEDDINGS_MODEL_NAME'))
-reranking_model = HuggingfaceRerankingModel(os.getenv('RERANKING_MODEL_NAME'))
+vector_database = env.get_vector_database()
+embeddings_model = env.get_embeddings_model()
+reranking_model = env.get_reranking_model()
 
 app = FastAPI()
 

@@ -6,7 +6,7 @@ from typing import List
 from qdrant_client import QdrantClient
 from qdrant_client.http import models
 
-class QdrantVectorDatabase(VectorDatabaseContract):
+class QdrantMemoryVectorDatabase(VectorDatabaseContract):
     COLLECTION_NAME = 'embeddings'
 
     def __init__(self):
