@@ -14,10 +14,10 @@ class VectorDatabaseContract(ABC):
     def query(self, vector, k, **kwargs):
         pass
 
-    # @abstractmethod
-    # def delete(self, vector):
-    #     pass
+    @abstractmethod
+    def delete(self, ids: List[str]):
+        pass
 
-    # @abstractmethod
-    # def update(self, vector, payload):
-    #     pass
+    @abstractmethod
+    def update(self, data: List[InsertData]):
+        pass

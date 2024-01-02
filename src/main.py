@@ -23,6 +23,13 @@ def insert(body: InsertBody):
         'success': True,
     }
 
+@app.delete('/delete/{id}')
+def delete(id):
+    vector_database.delete(id)
+    return {
+        'success': True,
+    }
+
 @app.get('/query')
 def query(query: str, k: int = 5, entities: str = None):
     vector = embeddings_model.embed_one(query)

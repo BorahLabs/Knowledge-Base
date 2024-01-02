@@ -6,11 +6,15 @@ from typing import List
 from qdrant_client import QdrantClient
 from qdrant_client.http import models
 
-class QdrantMemoryVectorDatabase(VectorDatabaseContract):
+class QdrantVectorDatabase(VectorDatabaseContract):
     COLLECTION_NAME = 'embeddings'
 
     def __init__(self):
-        self.client = QdrantClient(':memory:')
+        if os.getenv('QDRANT_HOST') is not None and os.getenv('QDRANT_PORT') is not None:
+            self.client = QdrantClient(os.getenv('QDRANT_HOST'), port=os.getenv('QDRANT_PORT'), api_key=os.getenv('QDRANT_API_KEY'))
+        else:
+            self.client = QdrantClient(':memory:')
+
         self.client.create_collection(
             collection_name=self.COLLECTION_NAME,
             vectors_config=models.VectorParams(size=os.getenv('EMBEDDINGS_VECTOR_SIZE'), distance=models.Distance.COSINE),
@@ -60,3 +64,15 @@ class QdrantMemoryVectorDatabase(VectorDatabaseContract):
                 payload=result.payload,
             ) for result in results
         ]
+
+    def update(self, data: List[InsertData]):
+        # Qdrant handles inserts and updates in the same way
+        return self.insert(data)
+
+    def delete(self, ids: List[str]):
+        self.client.delete(
+            collection_name=self.COLLECTION_NAME,
+            points_selector=models.PointIdsList(
+                points=ids,
+            ),
+        )

@@ -1,7 +1,7 @@
 import os
 
 from vector_database.contracts.VectorDatabaseContract import VectorDatabaseContract
-from vector_database.QdrantMemoryVectorDatabase import QdrantMemoryVectorDatabase
+from vector_database.QdrantVectorDatabase import QdrantVectorDatabase
 
 from embeddings.contracts.EmbeddingsModelContract import EmbeddingsModelContract
 from embeddings.HuggingfaceModel import HuggingfaceModel
@@ -10,8 +10,8 @@ from reranking.contracts.RerankingModelContract import RerankingModelContract
 from reranking.HuggingfaceRerankingModel import HuggingfaceRerankingModel
 
 def get_vector_database() -> VectorDatabaseContract:
-    if os.getenv('VECTOR_DATABASE', 'qdrant_memory') == 'qdrant_memory':
-        return QdrantMemoryVectorDatabase()
+    if os.getenv('VECTOR_DATABASE', 'qdrant') == 'qdrant':
+        return QdrantVectorDatabase()
 
     raise Exception('Unknown vector database')
 
