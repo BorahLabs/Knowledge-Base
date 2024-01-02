@@ -4,11 +4,11 @@ services:
   knowledge_api:
     build: .
     ports:
-      - "8000:8000"
+      - "8100:8100"
     volumes:
       - .:/app
     environment:
-      - PORT=8000
+      - PORT=8100
       - NAME="Knowledge Database"
 
   qdrant:

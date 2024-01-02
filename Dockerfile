@@ -14,7 +14,7 @@ WORKDIR /app/src
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Define environment variable for the port
-ENV PORT=8000
+ENV PORT=8100
 
 # Make port available to the world outside this container
 EXPOSE $PORT
