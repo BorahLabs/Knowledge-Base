@@ -14,6 +14,12 @@ reranking_model = env.get_reranking_model()
 
 app = FastAPI()
 
+@app.get('/status')
+def status():
+    return {
+        'status': 'ok',
+    }
+
 @app.post('/insert')
 def insert(body: InsertBody):
     embeddings = embeddings_model.embed_many([item.text for item in body.data])
