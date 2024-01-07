@@ -15,10 +15,13 @@ class QdrantVectorDatabase(VectorDatabaseContract):
         else:
             self.client = QdrantClient(':memory:')
 
-        self.client.create_collection(
-            collection_name=self.COLLECTION_NAME,
-            vectors_config=models.VectorParams(size=os.getenv('EMBEDDINGS_VECTOR_SIZE'), distance=models.Distance.COSINE),
-        )
+        try:
+            self.client.create_collection(
+                collection_name=self.COLLECTION_NAME,
+                vectors_config=models.VectorParams(size=os.getenv('EMBEDDINGS_VECTOR_SIZE'), distance=models.Distance.COSINE),
+            )
+        except:
+            pass
 
     def insert(self, data: List[InsertData]):
         self.client.upsert(
