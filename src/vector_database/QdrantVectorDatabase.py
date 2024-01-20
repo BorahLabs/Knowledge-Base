@@ -49,6 +49,19 @@ class QdrantVectorDatabase(VectorDatabaseContract):
                 match=models.MatchAny(any=entities)
             ))
 
+        if kwargs.get('filters') is not None:
+            for key, value in kwargs.get('filters').items():
+                if isinstance(value, str):
+                    value = value.split(',')
+
+                if not isinstance(value, list):
+                    value = [value]
+
+                must_filters.append(models.FieldCondition(
+                    key=key,
+                    match=models.MatchAny(any=value),
+                ))
+
         results = self.client.search(
             collection_name=self.COLLECTION_NAME,
             query_vector=vector,

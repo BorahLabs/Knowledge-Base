@@ -1,7 +1,9 @@
 import dotenv
 import env
+import json
 
-from fastapi import FastAPI
+from typing import Dict
+from fastapi import FastAPI, Depends, Query
 from api.models import InsertBody
 from vector_database.dto.InsertData import InsertData
 
@@ -37,17 +39,22 @@ def delete(id):
     }
 
 @app.get('/query')
-def query(query: str, k: int = 5, entities: str = None):
+def query(query: str, k: int = 5, entities: str = None, where=None):
+    if where is not None:
+        where = json.loads(where)
+
     vector = embeddings_model.embed_one(query)
-    results = vector_database.query(vector, k, entities=entities)
+    results = vector_database.query(vector, k, entities=entities, filters=where)
     if len(results) == 0:
         return {
             'success': True,
             'results': [],
+            'filters': where,
         }
 
     reranked_results = reranking_model.rerank(query, results)
     return {
         'success': True,
         'results': reranked_results,
+        'filters': where,
     }
