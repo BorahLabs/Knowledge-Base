@@ -22,7 +22,7 @@ Insert new knowledge into the database. The body must be a JSON with the followi
 {
     "data": [
         {
-            "id": "abc",
+            "id": "08c8ded7-49cc-4746-b2eb-6330c811b7a9",
             "text": "Text that will be converted to embeddings",
             "entity": "Name of the entity that will be used to filter if needed",
             "payload": {
