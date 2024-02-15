@@ -1,7 +1,8 @@
-version: '3.8'
+version: "3.8"
 
 services:
   knowledge_api:
+    restart: always
     build: .
     ports:
       - "8100:8100"
