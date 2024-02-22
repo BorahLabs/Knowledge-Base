@@ -15,6 +15,7 @@ services:
       - qdrant
 
   qdrant:
+    restart: always
     image: qdrant/qdrant
     volumes:
       - ./qdrant_storage:/qdrant/storage:z
