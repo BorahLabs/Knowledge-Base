@@ -1,56 +1,41 @@
-from vector_database.contracts.VectorDatabaseContract import VectorDatabaseContract
-from vector_database.dto.InsertData import InsertData
-from vector_database.dto.VectorSearchResult import VectorSearchResult
 import os
-from typing import List
-from qdrant_client import QdrantClient
+from typing import Dict, Any
+from langchain_community.vectorstores import Qdrant
 from qdrant_client.http import models
 
-class QdrantVectorDatabase(VectorDatabaseContract):
-    COLLECTION_NAME = 'embeddings'
+from vector_database.contracts.VectorDatabaseContract import VectorDatabase
 
-    def __init__(self):
-        if os.getenv('QDRANT_HOST') is not None and os.getenv('QDRANT_PORT') is not None:
-            self.client = QdrantClient(os.getenv('QDRANT_HOST'), port=os.getenv('QDRANT_PORT'), api_key=os.getenv('QDRANT_API_KEY'))
-        else:
-            self.client = QdrantClient(':memory:')
 
-        try:
-            self.client.create_collection(
-                collection_name=self.COLLECTION_NAME,
-                vectors_config=models.VectorParams(size=os.getenv('EMBEDDINGS_VECTOR_SIZE'), distance=models.Distance.COSINE),
-            )
-        except:
-            pass
+class QdrantVectorDatabase(VectorDatabase):
+    @staticmethod
+    def make() -> 'QdrantVectorDatabase':
+        from env import get_embeddings_model
 
-    def insert(self, data: List[InsertData]):
-        self.client.upsert(
-            collection_name=self.COLLECTION_NAME,
-            points=[
-                models.PointStruct(
-                    id=item.id,
-                    payload={
-                        **(item.payload if item.payload is not None else {}),
-                        "id": item.id,
-                        "entity": item.entity,
-                        "text": item.text,
-                    },
-                    vector=item.vector,
-                ) for item in data
-            ]
+        collection_name = os.getenv('EMBEDDINGS_COLLECTION_NAME', 'embeddings')
+        store = Qdrant.construct_instance(
+            texts=['Test'],
+            embedding=get_embeddings_model(),
+            location=':memory:' if os.getenv('QDRANT_HOST') is None else None,
+            host=os.getenv('QDRANT_HOST'),
+            port=os.getenv('QDRANT_PORT', 6333),
+            collection_name=collection_name,
         )
 
-    def query(self, vector, k, **kwargs) -> List[VectorSearchResult]:
+        return QdrantVectorDatabase(
+            store=store,
+        )
+
+    def get_search_kwargs(self, entities: str, filters: Dict[str, Any]) -> Dict[str, Any]:
         must_filters = []
-        if kwargs.get('entities') is not None:
-            entities = kwargs.get('entities').split(',')
+        if entities is not None:
+            entities = entities.split(',')
             must_filters.append(models.FieldCondition(
-                key='entity',
+                key='metadata.entity',
                 match=models.MatchAny(any=entities)
             ))
 
-        if kwargs.get('filters') is not None:
-            for key, value in kwargs.get('filters').items():
+        if filters is not None and len(filters) > 0:
+            for key, value in filters.items():
                 if isinstance(value, str):
                     value = value.split(',')
 
@@ -58,37 +43,12 @@ class QdrantVectorDatabase(VectorDatabaseContract):
                     value = [value]
 
                 must_filters.append(models.FieldCondition(
-                    key=key,
+                    key=f'metadata.payload.{key}',
                     match=models.MatchAny(any=value),
                 ))
 
-        results = self.client.search(
-            collection_name=self.COLLECTION_NAME,
-            query_vector=vector,
-            limit=k,
-            query_filter=models.Filter(
+        return {
+            'filter': models.Filter(
                 must=must_filters,
-            ),
-        )
-
-        return [
-            VectorSearchResult(
-                id=result.id,
-                entity=result.payload['entity'],
-                text=result.payload['text'],
-                score=result.score,
-                payload=result.payload,
-            ) for result in results
-        ]
-
-    def update(self, data: List[InsertData]):
-        # Qdrant handles inserts and updates in the same way
-        return self.insert(data)
-
-    def delete(self, ids: List[str]):
-        self.client.delete(
-            collection_name=self.COLLECTION_NAME,
-            points_selector=models.PointIdsList(
-                points=ids,
-            ),
-        )
+            )
+        }

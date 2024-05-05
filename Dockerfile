@@ -1,5 +1,16 @@
 # Use an official Python runtime as a parent image
-FROM python:3.11-slim-buster
+FROM python:3.11-slim-bullseye
+
+RUN echo "deb http://deb.debian.org/debian/ bookworm main" > /etc/apt/sources.list.d/bookworm.list
+
+# Install build essentials and gcc-11
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    gcc-11 \
+    g++-11
+
+RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-11 100
+RUN update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-11 100
 
 # Set the working directory in the container to /app
 WORKDIR /app

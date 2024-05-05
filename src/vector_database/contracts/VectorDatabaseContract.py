@@ -1,23 +1,17 @@
-from abc import ABC, abstractmethod
-from typing import List
-from vector_database.dto.InsertData import InsertData
+from abc import ABC
+from typing import Dict, Any
+from langchain.vectorstores import VectorStore
 
-class VectorDatabaseContract(ABC):
-    def __init__(self):
+
+class VectorDatabase(ABC):
+    store: VectorStore
+
+    def __init__(self, store: VectorStore):
+        self.store = store
+
+    @staticmethod
+    def make() -> 'VectorDatabase':
         pass
 
-    @abstractmethod
-    def insert(self, data: List[InsertData]):
-        pass
-
-    @abstractmethod
-    def query(self, vector, k, **kwargs):
-        pass
-
-    @abstractmethod
-    def delete(self, ids: List[str]):
-        pass
-
-    @abstractmethod
-    def update(self, data: List[InsertData]):
+    def get_search_kwargs(self, entities: str, filters: Dict[str, Any]) -> Dict[str, Any]:
         pass

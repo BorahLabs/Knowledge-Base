@@ -1,20 +1,22 @@
 import dotenv
 import env
 import json
+import os
 
-from typing import Dict
-from fastapi import FastAPI, Depends, Query
-from api.models import InsertBody
-from vector_database.dto.InsertData import InsertData
-
+from fastapi import FastAPI, Response
+from api.models import InsertBody, ChunkBody
+from reranking.dto.RerankedSearchResult import RerankedSearchResult
+from flashrank import RerankRequest
+from langchain_core.documents import Document
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 dotenv.load_dotenv()
 
 vector_database = env.get_vector_database()
-embeddings_model = env.get_embeddings_model()
 reranking_model = env.get_reranking_model()
 
 app = FastAPI()
+
 
 @app.get('/status')
 def status():
@@ -22,29 +24,70 @@ def status():
         'status': 'ok',
     }
 
+
 @app.post('/insert')
 def insert(body: InsertBody):
-    embeddings = embeddings_model.embed_many([item.text for item in body.data])
-    data = [InsertData(id=item.id, text=item.text, entity=item.entity, vector=vector, payload=item.payload) for item, vector in zip(body.data, embeddings)]
-    vector_database.insert(data)
+    documents = [Document(
+        page_content=item.text,
+        metadata={'id': item.id, 'entity': item.entity,
+                  'payload': item.payload},
+    ) for item in body.data]
+    ids = vector_database.store.add_documents(
+        documents, ids=[item.id for item in body.data])
+
     return {
         'success': True,
+        'ids': ids,
     }
+
+
+@app.post('/chunk')
+def chunk(body: ChunkBody):
+    documents = [Document(
+        page_content=item.text,
+        metadata={'id': item.id},
+    ) for item in body.data]
+
+    chunk_size = body.chunk_size if body.chunk_size > 0 else os.getenv(
+        'CHUNK_SIZE', 1000)
+    chunk_overlap = body.chunk_overlap if body.chunk_overlap > 0 else os.getenv(
+        'CHUNK_OVERLAP', 200)
+    text_splitter = RecursiveCharacterTextSplitter(
+        chunk_size=chunk_size, chunk_overlap=chunk_overlap)
+    splits = text_splitter.split_documents(documents)
+
+    return {
+        'success': True,
+        'chunks': [{'id': item.metadata['id'], 'text': item.page_content} for item in splits],
+    }
+
 
 @app.delete('/delete/{id}')
-def delete(id):
-    vector_database.delete([id])
+def delete(id, response: Response):
+    try:
+        vector_database.store.delete([id])
+    except Exception as e:
+        response.status_code = 400
+        return {
+            'success': False,
+            'error': str(e),
+        }
+
     return {
         'success': True,
     }
 
-@app.get('/query')
-def query(query: str, k: int = 5, entities: str = None, where=None):
-    if where is not None:
-        where = json.loads(where)
 
-    vector = embeddings_model.embed_one(query)
-    results = vector_database.query(vector, k, entities=entities, filters=where)
+@app.get('/query')
+def query(query: str, k: int = 5, entities: str = None, where=None, min_score=0.05):
+    where = json.loads(where) if where is not None else {}
+
+    results = vector_database.store.search(
+        query=query,
+        search_type='similarity',
+        k=os.getenv('MAX_K', 1000),
+        **vector_database.get_search_kwargs(entities=entities, filters=where)
+    )
     if len(results) == 0:
         return {
             'success': True,
@@ -52,7 +95,33 @@ def query(query: str, k: int = 5, entities: str = None, where=None):
             'filters': where,
         }
 
-    reranked_results = reranking_model.rerank(query, results)
+    reranked_results = reranking_model.rerank(
+        RerankRequest(
+            query=query,
+            passages=[
+                {
+                    'id': item.metadata['id'],
+                    'text': item.page_content,
+                    'meta': item.metadata,
+                } for item in results
+            ],
+        )
+    )
+
+    if min_score > 0:
+        reranked_results = [
+            item for item in reranked_results if item['score'] >= min_score]
+
+    if k > 0:
+        reranked_results = reranked_results[:k]
+
+    reranked_results = [RerankedSearchResult(
+        id=result['id'],
+        entity=result['meta']['entity'],
+        text=result['text'],
+        payload=result['meta']['payload'] if 'payload' in result['meta'] else {},
+        score=result['score'],
+    ) for result in reranked_results]
     return {
         'success': True,
         'results': reranked_results,
