@@ -2,6 +2,8 @@ import dotenv
 import env
 import json
 import os
+import time
+import psutil
 
 from fastapi import FastAPI, Response
 from api.models import InsertBody, ChunkBody
@@ -82,10 +84,12 @@ def delete(id, response: Response):
 def query(query: str, k: int = 5, entities: str = None, where=None, min_score=0.05):
     where = json.loads(where) if where is not None else {}
 
-    results = vector_database.store.search(
-        query=query,
-        search_type='similarity',
-        k=os.getenv('MAX_K', 1000),
+    query_embeddings = vector_database.store.embeddings.embed_query(query)
+    print(f"Memory usage before search: {psutil.virtual_memory().percent}%")
+    start = time.time()
+    results = vector_database.store.similarity_search_by_vector(
+        embedding=query_embeddings,
+        k=os.getenv('MAX_K', 100),
         **vector_database.get_search_kwargs(entities=entities, filters=where)
     )
     if len(results) == 0:
@@ -95,6 +99,11 @@ def query(query: str, k: int = 5, entities: str = None, where=None, min_score=0.
             'filters': where,
         }
 
+    end = time.time()
+    print(f'Search time: {end - start}')
+
+    print(f"Memory usage before reranking: {psutil.virtual_memory().percent}%")
+    start = time.time()
     reranked_results = reranking_model.rerank(
         RerankRequest(
             query=query,
@@ -107,6 +116,10 @@ def query(query: str, k: int = 5, entities: str = None, where=None, min_score=0.
             ],
         )
     )
+
+    end = time.time()
+    print(f'Reranking time: {end - start}')
+    print(f"Memory usage after reranking: {psutil.virtual_memory().percent}%")
 
     if min_score > 0:
         reranked_results = [

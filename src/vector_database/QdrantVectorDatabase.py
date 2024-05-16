@@ -21,6 +21,15 @@ class QdrantVectorDatabase(VectorDatabase):
             collection_name=collection_name,
         )
 
+        try:
+            store.client.create_payload_index(
+                collection_name="embeddings",
+                field_name="entity",
+                field_schema="keyword",
+            )
+        except:
+            pass
+
         return QdrantVectorDatabase(
             store=store,
         )
