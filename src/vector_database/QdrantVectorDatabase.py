@@ -38,7 +38,7 @@ class QdrantVectorDatabase(VectorDatabase):
         must_filters = []
         if entities is not None:
             entities = entities.split(',')
-            entities = [str(entity) for entity in entities]
+            # entities = [str(entity) for entity in entities]
 
             must_filters.append(models.FieldCondition(
                 key='metadata.entity',
@@ -53,7 +53,7 @@ class QdrantVectorDatabase(VectorDatabase):
                 if not isinstance(value, list):
                     value = [value]
 
-                value = [str(v) for v in value]
+                # value = [str(v) for v in value]
                 must_filters.append(models.FieldCondition(
                     key=f'metadata.payload.{key}',
                     match=models.MatchAny(any=value),
