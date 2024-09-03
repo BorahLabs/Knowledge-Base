@@ -14,6 +14,17 @@
 
 ## Endpoints
 
+### `GET` `/status`
+
+Check if the API is running
+
+#### Response
+```json
+{
+    "status": "ok"
+}
+```
+
 ### `POST` `/insert`
 
 Insert new knowledge into the database. The body must be a JSON with the following structure:
@@ -33,6 +44,16 @@ Insert new knowledge into the database. The body must be a JSON with the followi
 }
 ```
 
+#### Response
+```json
+{
+    "success": true,
+    "ids": [
+        "08c8ded7-49cc-4746-b2eb-6330c811b7a9"
+    ]
+}
+```
+
 ### `GET` `/query`
 
 This endpoint can receive the following parameters:
@@ -41,10 +62,76 @@ This endpoint can receive the following parameters:
 - `k`: Number of results to return. Default = 5
 - `entities`: Comma separated list of entities to filter the results. Default = all entities
 - `where`: A JSON string with the conditions to filter the results. The keys are the keys of the payload and the values should be a comma separated string with the values to filter. For example: `{"key": "value1,value2"}`
+- `min_score`: Minimum score to filter the results after the reranking process. Default = 0.05
+
+#### Response
+```json
+{
+    "success": true,
+    "results": [
+        {
+            "id": "08c8ded7-49cc-4746-b2eb-6330c811b7a9",
+            "entity": "Name of the entity that will be used to filter if needed",
+            "text": "Text of the record",
+            "payload": {
+                "key": "optional"
+            },
+            "score": 0.9
+        }
+    ],
+    "filters": {
+        "key": "value1,value2"
+    }
+}
+```
+
+
 
 ### `DELETE` `/delete/{id}`
 
 Delete a knowledge from the database. The `id` parameter is the id of the knowledge to delete.
+
+#### Response
+```json
+{
+    "success": true
+}
+```
+
+### `POST` `/chunk`
+
+Chunk the text into smaller pieces. This is useful if the text is too large to be processed in one go. This endpoint will **not** embed the text, it will only split it into smaller pieces. The body must be a JSON with the following structure:
+
+```json
+{
+    "data": [
+        {
+            "id": "08c8ded7-49cc-4746-b2eb-6330c811b7a9",
+            "text": "Text to chunk"
+        }
+    ],
+    "chunk_size": 1000,
+    "chunk_overlap": 200
+}
+```
+
+#### Response
+
+```json
+{
+    "success": true,
+    "chunks": [
+        {
+            "id": "08c8ded7-49cc-4746-b2eb-6330c811b7a9",
+            "text": "Text chunk #1"
+        },
+        {
+            "id": "08c8ded7-49cc-4746-b2eb-6330c811b7a9",
+            "text": "Text chunk #2"
+        }
+    ]
+}
+```
 
 ## Vector stores
 
